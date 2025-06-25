@@ -1,0 +1,11 @@
+services:
+
+
+
+
+
+  querydemon:
+    image: docker.io/library/querydemon:latest
+    container_name: querydemon
+    ports:
+      - "80:80"

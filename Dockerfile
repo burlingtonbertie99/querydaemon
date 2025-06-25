@@ -1,0 +1,83 @@
+FROM swipl
+
+COPY querydemon.pl /
+
+COPY qserver.pl /
+
+
+COPY date_time.pl /
+
+
+# RUN export CONTAINERD_ENABLE_DEPRECATED_PULL_SCHEMA_1_IMAGE=1
+
+# Install Oracle deps
+# RUN yum -y install unixODBC
+# RUN yum -y install bash
+
+# Add Tini
+#ENV TINI_VERSION=v0.19.0
+#ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+#RUN chmod +x /tini
+
+
+
+
+#RUN yum install -y yum-utils && yum-config-manager --add-repo http://download.mono-project.com/repo/centos-beta/ && yum install -y mono-core && yum install -y mono-complete	
+
+#RUN rpmkeys --import "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF"
+#RUN su -c 'curl https://download.mono-project.com/repo/centos8-stable.repo | tee /etc/yum.repos.d/mono-centos8-stable.repo'
+#RUN dnf install -y mono-devel
+
+
+
+#RUN apk add openjdk8
+#RUN apk add --no-cache java-cacerts
+#RUN apk add bash
+#RUN yum -y install bash
+#RUN yum -y install java-1.8.0-openjdk
+
+
+# Define default command.
+#CMD ["bash"]
+
+# WORKDIR ${JAVA_HOME}/bin
+
+#LABEL maintainer="Jon Korsgaard Sorensen <jks@cryptomathic.com>"
+
+COPY entrypoint.sh /
+RUN chmod +x /entrypoint.sh
+#ENTRYPOINT ["/entrypoint.sh"]
+
+
+
+
+#ENV ORACLE_HOME=/usr/lib/oracle/11.2/client64
+#RUN ln -s /usr/lib64/libodbcinst.so.2.0.0 /usr/lib64/libodbcinst.so.1
+
+# Add Authenticator config defaults
+#ENV LD_LIBRARY_PATH=$ORACLE_HOME/lib:/usr/local/lib:/opt/PTK/lib:. \
+#    LIB_PATH=$ORACLE_HOME/lib \
+#    NLS_LANG="ENGLISH_UNITED KINGDOM.WE8MSWIN1252" \
+#    PATH=$ORACLE_HOME/bin:$PATH \
+#    SQLPATH=$ORACLE_HOME/lib \
+#    TNS_ADMIN=/etc/oracle \
+#    TWO_TASK=authenticator-db
+
+#RUN unzip /tmp/bins-x64.zip -d /tmp/bins-x64/ \
+#    && rm -rfv /tmp/bins-x64*
+#COPY config/PerfTestConsole.exe.config /opt/cryptomathic/authenticator/test/
+#RUN chmod +x /opt/cryptomathic/authenticator/test/format.sh
+
+#COPY entrypoint.sh /
+#RUN chmod +x /entrypoint.sh
+#CMD ["/entrypoint.sh"]
+
+#ENTRYPOINT ["/tini", "--", "/entrypoint.sh"]
+
+ENTRYPOINT "/entrypoint.sh"
+
+#EXPOSE 80 8080 2005-2007
+
+
+#VOLUME /mnt/auth-data \
+#      /opt/cryptomathic/authenticator/test/PerfData
