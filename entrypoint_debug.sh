@@ -10,7 +10,7 @@ echo ${{ secrets.secret1 }}
 
 echo $${{ secrets.secret2 }}
 
-swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
+swipl -g pack_install\(smtp,[interactive\(false\)]\) -t halt 
 
 
 swipl -g start_daemon -t halt querydemon.pl
