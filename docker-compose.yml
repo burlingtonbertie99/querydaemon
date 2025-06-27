@@ -4,8 +4,8 @@ services:
 
 
 
-  querydemon:
-    image: docker.io/library/querydemon:latest
-    container_name: querydemon
+  querydaemon:
+    image: docker.io/library/querydaemon:latest
+    container_name: querydaemon
     ports:
       - "80:80"

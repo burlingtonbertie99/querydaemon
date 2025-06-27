@@ -1,14 +1,13 @@
-
 #!/bin/bash
 #nohup swipl -g start_daemon -t halt querydemon.pl > /dev/null 2>&1 &
 #sleep 6000
 
-echo $MYMESSAGE
+#echo $MYMESSAGE
 
-echo ${{ secrets.secret1 }}
+#echo ${{ secrets.secret1 }}
 
 
-echo $${{ secrets.secret2 }}
+#echo $${{ secrets.secret2 }}
 
 swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
 

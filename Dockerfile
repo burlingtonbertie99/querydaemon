@@ -12,7 +12,11 @@ COPY date_time.pl /
 
 # Install Oracle deps
 # RUN yum -y install unixODBC
-# RUN yum -y install bash
+RUN apt -y install bash
+
+# Define default command.
+CMD ["bash"]
+
 
 # Add Tini
 #ENV TINI_VERSION=v0.19.0
