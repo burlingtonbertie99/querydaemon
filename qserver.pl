@@ -138,12 +138,134 @@ f2(6).
 
 test:-
 	 format('Getting tasks... ~n')
-	 ,getTasks(false,M)
+	 ,getTasks(false,Work)
+	 
+	 
+	 
+	 ,getTasksPersonal(false,Personal)
 	 %, format(M)
+	 
+	 ,atomic_list_concat(['Work priorities: ',Work,';   Personal priorities:  ',Personal], M)
 	 
 	 ,mailtest(M)
 	 
 	 .
+
+
+
+
+
+getTasksPersonal(false,Message):-
+
+
+
+   current_prolog_flag(ca101todoistkey,Key),
+
+   %atom_json_term(D,json([model = Model, messages = [json([role = user, content = Prompt])] | Options]),[]),
+
+
+   atom_json_term(D,json([sync_token="*", resource_types = ["all","-projects"] ]),[]),
+
+
+   Data = atom(application/json, D),
+
+%   http_post('https://api.openai.com/v1/chat/completions', Data, ReturnData,
+
+    http_post('https://api.todoist.com/sync/v9/sync', Data, RawData,
+
+            [authorization(bearer(Key)), application/json]
+
+            ),
+
+
+               % my_extract_data(RawData, [json(Message)])
+
+               my_extract_data(RawData, Message)
+/*
+
+   (
+      Raw = false
+   -> (
+
+	 %,member(content = Result, Message)
+
+
+         )
+   ;  Result = ReturnData
+   )
+
+              */
+              .
+
+
+my_extract_data(Data, Result):-
+
+  /*
+   %member(Group=Fieldlist, Data),
+   gpt_extract_fields(Fieldname, Fieldlist, Result)
+
+   */
+
+
+	%json(Data)
+	%nl,write('DATA is ...................'),nl,
+
+	%nl,write(Data),nl,
+
+	checkT(Data,ITEMS)
+
+
+	,myfilter(ITEMS,[],CalculateList)
+
+
+
+        %  myitem(InstaSign - key problem,json([date=2024-03-27,is_recurring= @(false),lang=en,string=Mar 27,timezone= @(null)]),4)
+        ,findTopTask(CalculateList,0,'',FinalTask)
+        ,FinalTask= myitem(CONTENT1,json([date=_DUE,_,_,string=DateString,_]),_)
+%        , write('Most import task is: '), write(CONTENT1), write(',
+%        Due: '), write(DateString),nl
+
+
+        ,select(FinalTask,CalculateList,NextList),!
+
+
+        ,findTopTask(NextList,0,'',NextTask)
+      %  %, write('Next most import task is: '), write(NextTask),nl
+        ,NextTask= myitem(CONTENT2,json([date=_DUE2,_,_,string=DateString2,_]),_)
+       % , Write('Next most import task is: '), write(CONTENT2), write(', Due: '), write(DateString2),nl
+
+
+
+%       ,atom_concat(CONTENT1,DateString,Result0)
+ %      ,atom_concat(CONTENT2,Result0,Result1)
+  %     ,atom_concat(DateString2,Result1,Result)
+
+  ,atomic_list_concat([CONTENT1, ' Date due: ',DateString,CONTENT2, ' Date due: ',DateString2], ', ', Result)
+
+
+   .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -193,7 +315,7 @@ getTasks(false,Message):-
               .
 
 
-my_extract_data(Data, Result):-
+my_extract_dataXXXX(Data, Result):-
 
   /*
    %member(Group=Fieldlist, Data),
@@ -450,15 +572,30 @@ checkT(T,ITEMS):-
 
 
 
+
+% 1e9c117397f8d188a6865c34584319cc2aab6d45
+
 init_todoistkey:-
   (
     getenv('TODOISTKEY',Key)
     ; (Key='b31489a4696cf6ad74d1896b6c47279a53b5b774')
 
   )
+  
+  ,(
+    getenv('CA101TODOISTKEY',CA101Key)
+    ; (CA101Key='1e9c117397f8d188a6865c34584319cc2aab6d45')
+
+  )
+  
 
   ,
-   create_prolog_flag(todoistkey,Key,[type(atom)]).
+   create_prolog_flag(todoistkey,Key,[type(atom)])
+   
+   ,create_prolog_flag(ca101todoistkey,CA101Key,[type(atom)])
+   
+   
+   .
 
 
 :-init_todoistkey.
