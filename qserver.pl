@@ -1,17 +1,12 @@
-
 :- use_module(library(smtp)).
-
 :- use_module(library(http/thread_httpd)).
 :- use_module(library(http/http_dispatch)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/json)).
 :- use_module(library(http/json_convert)).
 :- use_module(library(http/http_json)).
-
 :- use_module(library(http/http_error)).
 :- use_module(library(http/http_log)).
-
-
 :- use_module(library(http/http_open)).
 :- use_module(library(http/http_client)).
 :- use_module(library(http/http_ssl_plugin)).
@@ -19,7 +14,6 @@
 :- use_module(library(http/json_convert)).
 
 :-ensure_loaded(date_time).
-
 
 %:-cd('P:/AllCode/prolog/queryserver').
 
@@ -39,8 +33,6 @@ get_dict_from_json_file(FPath, Dicty) :-
 
 :-dynamic today_is/1.
 
-%article_as_body(ArticleAtom,Out):-
-
 
 article_as_body(Input,Out):-
 
@@ -56,7 +48,6 @@ article_as_body(Input,Out):-
 
 
 	. % article_as_body()
-
 
 
 
@@ -77,40 +68,19 @@ mailtest(Input):-
 
                     smtp('smtp.gmail.com')
                     ,header(from('Christian Adler, <christianadler101@gmail.com>'))
-
-
                     ,from('christianadler101@gmail.com')
-
                     ,auth('christianadler101'-'vcoqjmhlszhslkei')
-
                     ,auth_method(login)
                     ,subject('Your automatically-generated article')
                     ,security(tls)
-
 %                  ,security(ssl)
-
-
                   ])
-
-
-
 
                 ,_Error,false)
 
 .
 
-
-
-
-
-
-
-
-
-
-
 today_is(0).
-
 
 :- http_handler(root(handle), handle_rpc, []).
 
@@ -122,26 +92,12 @@ http_json:json_type('application/json-rpc').
 
 %http_json:json_type('text/xml').
 
-% sample prolog program
-f1(1).
-f1(2).
-f1(4).
-f1(5).
-f2(3).
-f2(4).
-f2(6).
-
-
-
 %test(M):-getTasks(false,M), format(M).
-
 
 test:-
 	 format('Getting tasks... ~n')
 	 ,getTasks(false,Work)
-	 
-	 
-	 
+
 	 ,getTasksPersonal(false,Personal)
 	 %, format(M)
 	 
@@ -151,13 +107,7 @@ test:-
 	 
 	 .
 
-
-
-
-
 getTasksPersonal(false,Message):-
-
-
 
    current_prolog_flag(ca101todoistkey,Key),
 
@@ -173,7 +123,7 @@ getTasksPersonal(false,Message):-
 
     http_post('https://api.todoist.com/sync/v9/sync', Data, RawData,
 
-            [authorization(bearer(Key)), application/json]
+            [authorization(bearer(Key)), application/json,cert_verify_hook(cert_accept_any)]
 
             ),
 
@@ -290,7 +240,7 @@ getTasks(false,Message):-
 
     http_post('https://api.todoist.com/sync/v9/sync', Data, RawData,
 
-            [authorization(bearer(Key)), application/json]
+            [authorization(bearer(Key)), application/json,cert_verify_hook(cert_accept_any)]
 
             ),
 
