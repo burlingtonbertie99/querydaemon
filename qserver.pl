@@ -219,50 +219,82 @@ my_extract_data(Data, Result):-
 
 
 
-% getTasks(Result):- gpt_completions(Model, Prompt, Result, false,
-% Options),!.
 
 getTasks(false,Message):-
 
-
-
    current_prolog_flag(todoistkey,Key),
 
-   %atom_json_term(D,json([model = Model, messages = [json([role = user, content = Prompt])] | Options]),[]),
-
-
+   
    atom_json_term(D,json([sync_token="*", resource_types = ["all","-projects"] ]),[]),
 
-
    Data = atom(application/json, D),
-
-%   http_post('https://api.openai.com/v1/chat/completions', Data, ReturnData,
-
-    http_post('https://api.todoist.com/sync/v9/sync', Data, RawData,
+   
+   
+   
+   
+     catch(
+		(
+		http_post('https://api.todoist.com/sync/v9/sync', Data, RawData,
 
             [authorization(bearer(Key)), application/json,cert_verify_hook(cert_accept_any)]
 
             ),
-
-
-               % my_extract_data(RawData, [json(Message)])
-
-               my_extract_data(RawData, Message)
-/*
-
-   (
-      Raw = false
-   -> (
-
-	 %,member(content = Result, Message)
-
-
-         )
-   ;  Result = ReturnData
-   )
-
-              */
+             my_extract_data(RawData, Message)
+		),
+			%not going to do anything with the message
+			_,		
+			
+			%fall back to alternative below
+			false
+			 
+			 
+			 )
+   
               .
+
+%fall back in case site is under maintenance
+getTasks(false,Message):-
+
+   current_prolog_flag(todoistkey,Key),
+
+   atom_json_term(D,json([sync_token="*", resource_types = ["all","-projects"] ]),[]),
+
+   Data = atom(application/json, D),
+   
+   catch(
+		(
+		http_post('https://api.todoist.com/rest/v2/projects', Data, RawData,
+
+            [authorization(bearer(Key)), application/json,cert_verify_hook(cert_accept_any)]
+
+            ),
+             my_extract_data(RawData, Message)
+		),
+			%not going to do anything with the message
+			_,		
+			
+			%fall back to alternative below
+			false
+			 
+			 
+			 )
+              .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 my_extract_dataXXXX(Data, Result):-
@@ -384,8 +416,6 @@ findMultiplier(json([date=DateAtom,_,_,_,_]),Multiplier):-
    .
 
 findMultiplier(_,1).
-
-
 
 
 
