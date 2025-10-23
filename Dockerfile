@@ -1,11 +1,12 @@
 FROM swipl
 
-COPY querydemon.pl /
+COPY querydaemon.pl /
 
 COPY qserver.pl /
 
-
 COPY date_time.pl /
+
+COPY checkT.pl /
 
 
 # RUN export CONTAINERD_ENABLE_DEPRECATED_PULL_SCHEMA_1_IMAGE=1
