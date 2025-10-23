@@ -25,6 +25,12 @@ echo "Script execution commencing!"
 #swipl -g start_daemon -t halt querydemon.pl
 
 
+swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
+
+
+swipl -g start_daemon -t halt querydemon.pl
+
+
 
 
 
@@ -80,7 +86,7 @@ create_secrets() {
 
 
 
-create_secrets 
+#create_secrets 
 
 
 echo "Script execution completed!"
