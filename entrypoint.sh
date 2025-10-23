@@ -24,11 +24,16 @@ echo "Script execution commencing!"
 
 #swipl -g start_daemon -t halt querydemon.pl
 
+echo "Installing SMTP package!"
 
 swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
 
+echo "Starting Deamon!"
 
-swipl -g start_daemon -t halt querydemon.pl
+
+swipl -g start_daemon -t halt -s querydaemon.pl
+
+
 
 
 
