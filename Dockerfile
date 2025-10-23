@@ -8,6 +8,8 @@ COPY date_time.pl /
 
 COPY checkT.pl /
 
+COPY query_module.pl /
+
 
 # RUN export CONTAINERD_ENABLE_DEPRECATED_PULL_SCHEMA_1_IMAGE=1
 
