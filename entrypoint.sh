@@ -1,4 +1,9 @@
 #!/bin/bash
+
+
+
+echo "Script execution commencing!"
+
 #nohup swipl -g start_daemon -t halt querydemon.pl > /dev/null 2>&1 &
 #sleep 6000
 
@@ -9,10 +14,94 @@
 
 #echo $${{ secrets.secret2 }}
 
-swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
+# Run the function for backend
 
 
-swipl -g start_daemon -t halt querydemon.pl
+
+
+#swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
+
+
+#swipl -g start_daemon -t halt querydemon.pl
+
+
+
+
+
+create_secrets() {
+
+  mkdir -p backend	
+
+  local dir="backend"
+  echo "Entering $dir/ and creating secrets..."
+
+  cd "$dir" || { echo "Failed to enter $dir"; exit 1; }
+
+  # Ensure secrets/ directory exists
+  mkdir -p secrets  
+
+  # Ensure secrets/ is in .gitignore
+  if [ ! -f ".gitignore" ]; then
+    touch ".gitignore"
+  fi
+
+  if ! grep -qx "secrets/" ".gitignore"; then
+    echo "secrets/" >> ".gitignore"
+    echo "Added 'secrets/' to $dir/.gitignore"
+  fi
+
+  # Process the .env file and create secrets
+ # Process the .env file and create secrets
+  while IFS='=' read -r key value || [ -n "$key" ]; do
+    # Skip comments or blank lines
+    [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+
+    key=$(echo "$key" | xargs)
+    # Remove anything after '#' in the value (the comment)
+    value=$(echo "$value" | sed 's/\s*#.*//' | xargs)
+
+    echo "$value" > "secrets/$key"
+
+    if docker secret ls --format '{{.Name}}' | grep -qx "$key"; then
+      echo "Updating secret $key..."
+      docker secret rm "$key" >/dev/null 2>&1
+    fi
+
+    docker secret create "$key" "secrets/$key" \
+      && echo "Secret $key created successfully!" \
+      || echo "Failed to create secret: $key"
+  done < .env
+
+
+  cd - > /dev/null || exit
+}
+
+
+
+
+
+create_secrets 
+
+
+echo "Script execution completed!"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 check_existing_file_pskc() {

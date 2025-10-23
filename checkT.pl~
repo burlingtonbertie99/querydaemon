@@ -1,0 +1,116 @@
+checkT(T,ITEMS):-
+
+
+   T =
+
+   json(
+       [
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+       _,
+	   _,
+
+       items = ITEMS
+	       ,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _,
+
+       _
+
+     ])
+
+
+
+   .
+
+%there are two here in case i havent considered buffer underflow
+checkT(_,
+
+[
+
+json([
+
+added_at='2025-06-26T11:05:44.551686Z',
+added_by_uid='37884790',
+assigned_by_uid= @(null),
+checked= @(false),
+child_order=46,
+collapsed= @(false),
+completed_at= @(null),
+content='Looks like TODOIST have changed the schema!',
+day_order= -1,
+deadline= @(null),
+description='',
+due=json([date='2025-11-27',is_recurring= @(false),lang=en,string='Nov 27',timezone= @(null)]),
+duration= @(null),id='9293013714',is_deleted= @(false),labels=[],note_count=0,parent_id= @(null),priority=4,project_id='2284887442',responsible_uid= @(null),section_id= @(null),sync_id= @(null),updated_at='2025-07-23T10:21:05.111290Z',user_id='37884790',v2_id='6cFvQR2RVXm8FfQC',v2_parent_id= @(null),v2_project_id='6HFP6g5xVWwMXMpj',v2_section_id= @(null)
+
+])
+,
+
+
+json([
+
+added_at='2025-06-26T11:05:44.551686Z',
+added_by_uid='37884790',
+assigned_by_uid= @(null),
+checked= @(false),
+child_order=46,
+collapsed= @(false),
+completed_at= @(null),
+content='Looks like TODOIST have changed the schema!',
+day_order= -1,
+deadline= @(null),
+description='',
+due=json([date='2025-11-27',is_recurring= @(false),lang=en,string='Nov 27',timezone= @(null)]),
+duration= @(null),id='9293013714',is_deleted= @(false),labels=[],note_count=0,parent_id= @(null),priority=4,project_id='2284887442',responsible_uid= @(null),section_id= @(null),sync_id= @(null),updated_at='2025-07-23T10:21:05.111290Z',user_id='37884790',v2_id='6cFvQR2RVXm8FfQC',v2_parent_id= @(null),v2_project_id='6HFP6g5xVWwMXMpj',v2_section_id= @(null)
+
+])
+
+]
+
+
+
+).
+
+

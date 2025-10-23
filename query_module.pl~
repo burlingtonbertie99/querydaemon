@@ -1,0 +1,482 @@
+:- module(query_module,
+          [
+            load_todoist_sync_file/2,      % +File, -TodoistSyncTerm
+            parse_todoist_sync_string/2,  % +JSONString, -TodoistSyncTerm
+            dict_to_todoist_sync/2,       % +Dict, -TodoistSyncTerm
+            validate_todoist_sync/2       % +TodoistSyncTerm, -Result (ok | [Errors])
+          ]).
+
+/** <module> Todoist Sync v9 -> Prolog mapping & validation
+
+   This module converts a Todoist Sync API v9 JSON response (parsed into an SWI-Prolog dict)
+   into a fully-grounded Prolog term of the form:
+
+     todoist_sync(
+       sync_token(...),
+       full_sync(...),
+       sync_status(...),
+       temp_id_mapping(...),
+       items(...),
+       projects(...),
+       sections(...),
+       labels(...),
+       notes(...),
+       project_notes(...),
+       reminders(...),
+       reminder_locations(...),
+       collaborators(...),
+       filters(...),
+       locations(...),
+       user(...),
+       user_settings(...),
+       user_plan_limits(...)
+     ).
+
+   It also includes a validator that checks required top-level fields and commonly expected types
+   per the near-complete JSON Schema previously created.
+
+   NOTE: This mapping is permissive about extra properties - it's designed to be robust to schema drift.
+*/
+
+:- use_module(library(http/json)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
+
+%% load_todoist_sync_file(+File, -TodoistSync) is det.
+%  Read JSON from File and map to a todoist_sync term.
+load_todoist_sync_file(File, TodoistSync) :-
+    setup_call_cleanup(
+      open(File, read, S),
+      json_read_dict(S, Dict),
+      close(S)
+    ),
+    dict_to_todoist_sync(Dict, TodoistSync).
+
+%% parse_todoist_sync_string(+JSONString, -TodoistSync) is det.
+%  Parse a JSON string and map to a todoist_sync term.
+parse_todoist_sync_string(JSONString, TodoistSync) :-
+    % json_read_dict expects a stream; create one from the string
+    open_string(JSONString, Stream),
+    setup_call_cleanup(
+      true,
+      json_read_dict(Stream, Dict),
+      close(Stream)
+    ),
+    dict_to_todoist_sync(Dict, TodoistSync).
+
+%% dict_to_todoist_sync(+Dict, -TodoistSync) is det.
+%  Convert the top-level dict into the todoist_sync/17 term.
+dict_to_todoist_sync(Dict, todoist_sync(
+                            sync_token(SyncToken),
+                            full_sync(FullSync),
+                            sync_status(SyncStatus),
+                            temp_id_mapping(TempIdMapping),
+                            items(Items),
+                            projects(Projects),
+                            sections(Sections),
+                            labels(Labels),
+                            notes(Notes),
+                            project_notes(ProjectNotes),
+                            reminders(Reminders),
+                            reminder_locations(ReminderLocations),
+                            collaborators(Collaborators),
+                            filters(Filters),
+                            locations(Locations),
+                            user(UserTerm),
+                            user_settings(UserSettings),
+                            user_plan_limits(UserPlanLimits)
+                          )) :-
+    % required
+    get_or_null(Dict, sync_token, SyncToken),
+    get_or_null(Dict, full_sync, FullSync),
+
+    % permissive maps for sync_status / temp_id_mapping
+    get_map_list(Dict, sync_status, SyncStatus),
+    get_map_list(Dict, temp_id_mapping, TempIdMapping),
+
+    % arrays -> lists of subterms
+    map_resource_list(Dict, items, dict_item_to_term, Items),
+    map_resource_list(Dict, projects, dict_project_to_term, Projects),
+    map_resource_list(Dict, sections, dict_section_to_term, Sections),
+    map_resource_list(Dict, labels, dict_label_to_term, Labels),
+    map_resource_list(Dict, notes, dict_note_to_term, Notes),
+    map_resource_list(Dict, project_notes, dict_project_note_to_term, ProjectNotes),
+    map_resource_list(Dict, reminders, dict_reminder_to_term, Reminders),
+    map_resource_list(Dict, reminders_location, dict_reminder_location_to_term, ReminderLocations),
+    map_resource_list(Dict, collaborators, dict_collaborator_to_term, Collaborators),
+    map_resource_list(Dict, filters, dict_filter_to_term, Filters),
+    map_resource_list(Dict, locations, dict_location_to_term, Locations),
+
+    % user & extras
+    ( get_assoc_if_present(Dict, user, UserDict) -> dict_user_to_term(UserDict, UserTerm) ; UserTerm = user(id(null), email(null), full_name(null), karma(null), is_premium(null), tz_info(null)) ),
+    get_or_null(Dict, user_settings, UserSettings),
+    get_or_null(Dict, user_plan_limits, UserPlanLimits).
+
+/* ---------------------
+   Generic helpers
+   --------------------- */
+
+% get_or_null(+Dict, +Key, -Value)
+% If Key exists in Dict -> Value is that value; otherwise Value = null.
+get_or_null(Dict, Key, Value) :-
+    (   get_dict(Key, Dict, V) -> Value = V ; Value = null ).
+
+% get_map_list(+Dict, +Key, -Pairs)
+% If Dict contains an object for Key, return list of Key=Value pairs. Else [].
+get_map_list(Dict, Key, Pairs) :-
+    (   get_dict(Key, Dict, M),
+        is_dict(M)
+    ->  dict_pairs(M, _, Pairs)
+    ;   Pairs = []
+    ).
+
+% map_resource_list(+Dict, +Key, +Mapper, -List)
+% If Dict.Key is a list of dicts, apply Mapper to each dict. Else [].
+map_resource_list(Dict, Key, Mapper, List) :-
+    (   get_dict(Key, Dict, Arr),
+        is_list(Arr)
+    ->  maplist(call_mapdict(Mapper), Arr, List)
+    ;   List = []
+    ).
+
+call_mapdict(Mapper, DictItem, Term) :-
+    ( is_dict(DictItem) -> call(Mapper, DictItem, Term) ; Term = unknown(DictItem) ).
+
+% get_assoc_if_present(+Dict, +Key, -Value)
+% Succeeds if Key present; otherwise fails.
+get_assoc_if_present(Dict, Key, Value) :-
+    get_dict(Key, Dict, Value).
+
+/* ---------------------
+   Resource mappers
+   --------------------- */
+
+% Items
+dict_item_to_term(D, item(
+    id(ID),
+    user_id(UserId),
+    project_id(ProjectId),
+    content(Content),
+    description(Description),
+    priority(Priority),
+    due(DueTerm),
+    parent_id(ParentId),
+    child_order(ChildOrder),
+    section_id(SectionId),
+    day_order(DayOrder),
+    collapsed(Collapsed),
+    labels(Labels),
+    added_by_uid(AddedBy),
+    assigned_by_uid(AssignedBy),
+    responsible_uid(Responsible),
+    checked(Checked),
+    is_deleted(IsDeleted),
+    sync_id(SyncId),
+    added_at(AddedAt),
+    duration(Duration),
+    note_count(NoteCount)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, user_id, UserId),
+    get_or_null(D, project_id, ProjectId),
+    get_or_null(D, content, Content),
+    get_or_null(D, description, Description),
+    get_or_null(D, priority, Priority),
+    build_due(D, DueTerm),
+    get_or_null(D, parent_id, ParentId),
+    get_or_null(D, child_order, ChildOrder),
+    get_or_null(D, section_id, SectionId),
+    get_or_null(D, day_order, DayOrder),
+    get_or_null(D, collapsed, Collapsed),
+    ( get_dict(labels, D, L) -> Labels = L ; Labels = [] ),
+    get_or_null(D, added_by_uid, AddedBy),
+    get_or_null(D, assigned_by_uid, AssignedBy),
+    get_or_null(D, responsible_uid, Responsible),
+    get_or_null(D, checked, Checked),
+    get_or_null(D, is_deleted, IsDeleted),
+    get_or_null(D, sync_id, SyncId),
+    get_or_null(D, added_at, AddedAt),
+    build_duration(D, Duration),
+    ( get_dict(note_count, D, NC) -> NoteCount = NC ; NoteCount = 0 ).
+
+build_due(D, due(date(Date), datetime(Datetime), is_recurring(IsRec), string(String), timezone(Timezone))) :-
+    ( get_dict(due, D, Due) -> (
+        ( is_dict(Due) ->
+            get_or_null(Due, date, Date),
+            ( get_dict(datetime, Due, Dat) -> Datetime = Dat ; Datetime = null ),
+            ( get_dict(is_recurring, Due, IR) -> IsRec = IR ; IsRec = false ),
+            ( get_dict(string, Due, S) -> String = S ; String = null ),
+            ( get_dict(timezone, Due, TZ) -> Timezone = TZ ; Timezone = null )
+        ; Date = null, Datetime = null, IsRec = false, String = null, Timezone = null
+        )
+    ) ; Date = null, Datetime = null, IsRec = false, String = null, Timezone = null ).
+
+build_duration(D, DurationTerm) :-
+    ( get_dict(duration, D, Dur) ->
+        ( is_dict(Dur) ->
+            ( get_dict(amount, Dur, A) -> Amount = A ; Amount = null ),
+            ( get_dict(unit, Dur, U) -> Unit = U ; Unit = null ),
+            DurationTerm = duration(amount(Amount), unit(Unit))
+        ; DurationTerm = null
+        )
+    ; DurationTerm = null ).
+
+% Projects
+dict_project_to_term(D, project(
+    id(ID), name(Name), color(Color),
+    parent_id(ParentId), child_order(ChildOrder),
+    collapsed(Collapsed), shared(Shared),
+    sync_id(SyncId), is_deleted(IsDeleted),
+    is_archived(IsArchived), is_favorite(IsFavorite),
+    view_style(ViewStyle), can_assign_tasks(CanAssign)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, name, Name),
+    get_or_null(D, color, Color),
+    get_or_null(D, parent_id, ParentId),
+    get_or_null(D, child_order, ChildOrder),
+    get_or_null(D, collapsed, Collapsed),
+    get_or_null(D, shared, Shared),
+    get_or_null(D, sync_id, SyncId),
+    get_or_null(D, is_deleted, IsDeleted),
+    get_or_null(D, is_archived, IsArchived),
+    get_or_null(D, is_favorite, IsFavorite),
+    get_or_null(D, view_style, ViewStyle),
+    get_or_null(D, can_assign_tasks, CanAssign).
+
+% Sections
+dict_section_to_term(D, section(
+    id(ID), project_id(ProjectId), name(Name),
+    user_id(UserId), child_order(ChildOrder),
+    archived_at(ArchivedAt), added_at(AddedAt),
+    is_deleted(IsDeleted), sync_id(SyncId)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, project_id, ProjectId),
+    get_or_null(D, name, Name),
+    get_or_null(D, user_id, UserId),
+    get_or_null(D, child_order, ChildOrder),
+    get_or_null(D, archived_at, ArchivedAt),
+    get_or_null(D, added_at, AddedAt),
+    get_or_null(D, is_deleted, IsDeleted),
+    get_or_null(D, sync_id, SyncId).
+
+% Labels
+dict_label_to_term(D, label(
+    id(ID), name(Name), color(Color),
+    is_deleted(IsDeleted), is_favorite(IsFavorite),
+    item_order(ItemOrder), is_shared(IsShared)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, name, Name),
+    get_or_null(D, color, Color),
+    get_or_null(D, is_deleted, IsDeleted),
+    get_or_null(D, is_favorite, IsFavorite),
+    get_or_null(D, item_order, ItemOrder),
+    get_or_null(D, is_shared, IsShared).
+
+% Notes
+dict_note_to_term(D, note(
+    id(ID), item_id(ItemId), project_id(ProjectId),
+    content(Content), user_id(UserId), added_at(AddedAt),
+    is_deleted(IsDeleted)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, item_id, ItemId),
+    get_or_null(D, project_id, ProjectId),
+    get_or_null(D, content, Content),
+    get_or_null(D, user_id, UserId),
+    get_or_null(D, added_at, AddedAt),
+    get_or_null(D, is_deleted, IsDeleted).
+
+% Project notes
+dict_project_note_to_term(D, project_note(
+    id(ID), project_id(ProjectId), content(Content),
+    user_id(UserId), added_at(AddedAt), is_deleted(IsDeleted)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, project_id, ProjectId),
+    get_or_null(D, content, Content),
+    get_or_null(D, user_id, UserId),
+    get_or_null(D, added_at, AddedAt),
+    get_or_null(D, is_deleted, IsDeleted).
+
+% Reminders
+dict_reminder_to_term(D, reminder(
+    id(ID), item_id(ItemId), project_id(ProjectId),
+    is_deleted(IsDeleted), is_completed(IsCompleted),
+    due_date(DueDate), due_datetime(DueDT),
+    timezone(Timezone), recurring(Recurring), note(Note)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, item_id, ItemId),
+    get_or_null(D, project_id, ProjectId),
+    get_or_null(D, is_deleted, IsDeleted),
+    get_or_null(D, is_completed, IsCompleted),
+    get_or_null(D, due_date, DueDate),
+    get_or_null(D, due_datetime, DueDT),
+    get_or_null(D, timezone, Timezone),
+    get_or_null(D, recurring, Recurring),
+    get_or_null(D, note, Note).
+
+% Reminder locations
+dict_reminder_location_to_term(D, reminder_location(
+    id(ID), reminder_id(ReminderId), location_name(LocationName),
+    lat(Lat), lng(Lng), radius(Radius)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, reminder_id, ReminderId),
+    get_or_null(D, location_name, LocationName),
+    get_or_null(D, lat, Lat),
+    get_or_null(D, lng, Lng),
+    get_or_null(D, radius, Radius).
+
+% Collaborators
+dict_collaborator_to_term(D, collaborator(
+    id(ID), email(Email), full_name(FullName),
+    access_level(AccessLevel), is_active(IsActive)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, email, Email),
+    get_or_null(D, full_name, FullName),
+    get_or_null(D, access_level, AccessLevel),
+    get_or_null(D, is_active, IsActive).
+
+% Filters
+dict_filter_to_term(D, filter(
+    id(ID), name(Name), query(Query),
+    color(Color), is_deleted(IsDeleted)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, name, Name),
+    get_or_null(D, query, Query),
+    get_or_null(D, color, Color),
+    get_or_null(D, is_deleted, IsDeleted).
+
+% Locations
+dict_location_to_term(D, location(
+    id(ID), name(Name), lat(Lat), lng(Lng)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, name, Name),
+    get_or_null(D, lat, Lat),
+    get_or_null(D, lng, Lng).
+
+% User
+dict_user_to_term(D, user(
+    id(ID), email(Email), full_name(FullName),
+    karma(Karma), is_premium(IsPremium), tz_info(TZInfo)
+)) :-
+    get_or_null(D, id, ID),
+    get_or_null(D, email, Email),
+    get_or_null(D, full_name, FullName),
+    get_or_null(D, karma, Karma),
+    get_or_null(D, is_premium, IsPremium),
+    get_or_null(D, tz_info, TZInfo).
+
+/* ---------------------
+   Schema-driven validator
+   --------------------- */
+
+%% validate_todoist_sync(+TodoistSync, -Result) is det.
+%  Result = ok if no errors, otherwise Result = [ErrorMsgs...].
+validate_todoist_sync(todoist_sync(
+                         sync_token(_),
+                         _FullSync,
+                         _SyncStatus,
+                         _TempIdMapping,
+                         Items,
+                         Projects,
+                         Sections,
+                         Labels,
+                         Notes,
+                         ProjectNotes,
+                         Reminders,
+                         ReminderLocations,
+                         Collaborators,
+                         Filters,
+                         Locations,
+                         User,
+                         _UserSettings,
+                         _UserPlanLimits
+                       ), Result) :-
+    findall(E, top_level_check(Items, Projects, Sections, Labels, Notes, ProjectNotes,
+                                Reminders, ReminderLocations, Collaborators, Filters, Locations, User, E), Es),
+    % Additionally validate items and projects etc.
+    validate_list(Items, validate_item, ItemErrors),
+    validate_list(Projects, validate_project, ProjectErrors),
+    validate_list(Sections, validate_section, SectionErrors),
+    validate_list(Labels, validate_label, LabelErrors),
+    validate_list(Notes, validate_note, NoteErrors),
+    validate_list(Reminders, validate_reminder, ReminderErrors),
+    validate_list(Collaborators, validate_collaborator, CollaboratorErrors),
+    ( User = user(_, _, _, _, _, _) -> UserErrors = [] ; UserErrors = ["user term malformed"] ),
+
+    append([Es, ItemErrors, ProjectErrors, SectionErrors, LabelErrors, NoteErrors,
+            ReminderErrors, CollaboratorErrors, UserErrors], AllErrors),
+    exclude(=([]), AllErrors, Flattened),
+    flatten(Flattened, Flat),
+    ( Flat == [] -> Result = ok ; Result = Flat ).
+
+% top-level basic checks
+top_level_check(_, _, _, _, _, _, _, _, _, _, _, User, Error) :-
+    ( var(User) -> Error = 'user missing' ; Error = [] ).
+
+% validate list with a validator that returns [] or [msg]
+validate_list([], _, []).
+validate_list(List, Validator, Errors) :-
+    maplist(call_validator(Validator), List, Results),
+    exclude(=([]), Results, Errors).
+
+call_validator(Validator, Element, Result) :-
+    ( catch(call(Validator, Element, R), _, R = ['validator crashed']) -> Result = R ; Result = ['validator crash unknown'] ).
+
+% ---- per-resource validators ----
+validate_item(item(
+                id(ID), _UserId, _ProjectId, Content, _Desc, Priority,
+                due(_), _ParentId, _ChildOrder, _SectionId, _DayOrder,
+                _Collapsed, _Labels, _AddedBy, _AssignedBy, _Responsible,
+                _Checked, _IsDeleted, _SyncId, _AddedAt, _Duration, _NoteCount
+              ), Errs) :-
+    E1 = ( (ID == null) -> ['item.id missing'] ; [] ),
+    E2 = ( (Content == null) -> ['item.content missing'] ; [] ),
+    E3 = ( (Priority \= null, number(Priority)) -> [] ; [] ), % permissive
+    append([E1,E2,E3], L), exclude(=([]), L, Errs).
+
+validate_project(project(id(ID), Name, _Color, _ParentId, _ChildOrder, _Collapsed, _Shared, _SyncId, _IsDeleted, _IsArchived, _IsFavorite, _ViewStyle, _CanAssign), Errs) :-
+    E1 = ( (ID == null) -> ['project.id missing'] ; [] ),
+    E2 = ( (Name == null) -> ['project.name missing'] ; [] ),
+    exclude(=([]), [E1,E2], Errs).
+
+validate_section(section(id(ID), project_id(ProjectId), _Name, _UserId, _ChildOrder, _ArchivedAt, _AddedAt, _IsDeleted, _SyncId), Errs) :-
+    E1 = ( (ID == null) -> ['section.id missing'] ; [] ),
+    E2 = ( (ProjectId == null) -> ['section.project_id missing'] ; [] ),
+    exclude(=([]), [E1,E2], Errs).
+
+validate_label(label(id(ID), name(Name), _Color, _IsDeleted, _IsFavorite, _ItemOrder, _IsShared), Errs) :-
+    E1 = ( (ID == null) -> ['label.id missing'] ; [] ),
+    E2 = ( (Name == null) -> ['label.name missing'] ; [] ),
+    exclude(=([]), [E1,E2], Errs).
+
+validate_note(note(id(ID), _ItemId, _ProjectId, Content, _UserId, _AddedAt, _IsDeleted), Errs) :-
+    E1 = ( (ID == null) -> ['note.id missing'] ; [] ),
+    E2 = ( (Content == null) -> ['note.content missing'] ; [] ),
+    exclude(=([]), [E1,E2], Errs).
+
+validate_reminder(reminder(id(ID), _ItemId, _ProjectId, _IsDeleted, _IsCompleted, _DueDate, _DueDT, _TZ, _Recurring, _Note), Errs) :-
+    E1 = ( (ID == null) -> ['reminder.id missing'] ; [] ),
+    exclude(=([]), [E1], Errs).
+
+validate_collaborator(collaborator(id(ID), _Email, _FullName, _Access, _IsActive), Errs) :-
+    E1 = ( (ID == null) -> ['collaborator.id missing'] ; [] ),
+    exclude(=([]), [E1], Errs).
+
+/* ---------------------
+   Utilities
+   --------------------- */
+
+% flatten/2 available in library(lists) but provide fallback if not
+:- if(\+current_predicate(flatten/2)).
+flatten(X,Y) :- append(X,[],Y).
+:- endif.
+

@@ -1,0 +1,347 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Todoist Sync API v9 - Response (near-complete)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "sync_token": { "type": "string" },
+    "full_sync": { "type": "boolean" },
+    "sync_status": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "temp_id_mapping": {
+      "type": "object",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+
+    "items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/item" }
+    },
+
+    "projects": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/project" }
+    },
+
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/section" }
+    },
+
+    "labels": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/label" }
+    },
+
+    "notes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/note" }
+    },
+
+    "project_notes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/project_note" }
+    },
+
+    "reminders": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/reminder" }
+    },
+
+    "reminders_location": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/reminder_location" }
+    },
+
+    "collaborators": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/collaborator" }
+    },
+
+    "collaborator_states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+
+    "completed_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+
+    "filters": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/filter" }
+    },
+
+    "locations": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/location" }
+    },
+
+    "user": { "$ref": "#/definitions/user" },
+
+    "user_settings": { "$ref": "#/definitions/user_settings" },
+
+    "user_plan_limits": { "$ref": "#/definitions/user_plan_limits" },
+
+    "stats": {
+      "type": "object",
+      "additionalProperties": true
+    },
+
+    "live_notifications": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+
+    "live_notifications_last_read_id": { "type": ["string", "null"] },
+
+    "day_orders": {
+      "type": "object",
+      "additionalProperties": true
+    },
+
+    "day_orders_timestamp": { "type": ["string", "null"] },
+
+    "settings_notifications": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "required": ["sync_token"],
+  "definitions": {
+    "item": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": ["string", "null"] },
+        "project_id": { "type": ["string", "null"] },
+        "content": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "integer" },
+        "due": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "date": { "type": "string" },
+                "datetime": { "type": ["string", "null"] },
+                "is_recurring": { "type": "boolean" },
+                "string": { "type": "string" },
+                "timezone": { "type": ["string", "null"] }
+              }
+            }
+          ]
+        },
+        "deadline": { "type": ["object", "null"] },
+        "parent_id": { "type": ["string", "null"] },
+        "child_order": { "type": ["integer", "number"] },
+        "section_id": { "type": ["string", "null"] },
+        "day_order": { "type": ["integer", "number"] },
+        "collapsed": { "type": "boolean" },
+        "labels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "added_by_uid": { "type": ["string", "null"] },
+        "assigned_by_uid": { "type": ["string", "null"] },
+        "responsible_uid": { "type": ["string", "null"] },
+        "checked": { "type": "boolean" },
+        "is_deleted": { "type": "boolean" },
+        "sync_id": { "type": ["string", "null"] },
+        "added_at": { "type": "string" },
+        "duration": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "amount": { "type": "integer" },
+                "unit": { "type": "string" }
+              },
+              "required": ["amount", "unit"],
+              "additionalProperties": true
+            }
+          ]
+        },
+        "note_count": { "type": "integer" }
+      }
+    },
+
+    "project": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" },
+        "parent_id": { "type": ["string", "null"] },
+        "child_order": { "type": ["integer", "number"] },
+        "collapsed": { "type": "boolean" },
+        "shared": { "type": "boolean" },
+        "sync_id": { "type": ["string", "null"] },
+        "is_deleted": { "type": "boolean" },
+        "is_archived": { "type": "boolean" },
+        "is_favorite": { "type": "boolean" },
+        "view_style": { "type": "string" },
+        "can_assign_tasks": { "type": "boolean" }
+      }
+    },
+
+    "section": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "project_id": { "type": "string" },
+        "name": { "type": "string" },
+        "user_id": { "type": ["string", "null"] },
+        "child_order": { "type": ["integer", "number"] },
+        "archived_at": { "type": ["string", "null"] },
+        "added_at": { "type": ["string", "null"] },
+        "is_deleted": { "type": "boolean" },
+        "sync_id": { "type": ["string", "null"] }
+      }
+    },
+
+    "label": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "color": { "type": "string" },
+        "is_deleted": { "type": "boolean" },
+        "is_favorite": { "type": "boolean" },
+        "item_order": { "type": ["integer", "number"] },
+        "is_shared": { "type": "boolean" }
+      }
+    },
+
+    "note": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "item_id": { "type": "string" },
+        "project_id": { "type": "string" },
+        "content": { "type": "string" },
+        "user_id": { "type": "string" },
+        "added_at": { "type": "string" },
+        "is_deleted": { "type": "boolean" }
+      }
+    },
+
+    "project_note": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "project_id": { "type": "string" },
+        "content": { "type": "string" },
+        "user_id": { "type": "string" },
+        "added_at": { "type": "string" },
+        "is_deleted": { "type": "boolean" }
+      }
+    },
+
+    "reminder": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "item_id": { "type": ["string", "null"] },
+        "project_id": { "type": ["string", "null"] },
+        "is_deleted": { "type": "boolean" },
+        "is_completed": { "type": "boolean" },
+        "due_date": { "type": ["string", "null"] },
+        "due_datetime": { "type": ["string", "null"] },
+        "timezone": { "type": ["string", "null"] },
+        "recurring": { "type": "boolean" },
+        "note": { "type": ["string", "null"] }
+      }
+    },
+
+    "reminder_location": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "reminder_id": { "type": "string" },
+        "location_name": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "radius": { "type": "integer" }
+      }
+    },
+
+    "collaborator": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "full_name": { "type": "string" },
+        "access_level": { "type": "string" },
+        "is_active": { "type": "boolean" }
+      }
+    },
+
+    "filter": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "query": { "type": "string" },
+        "color": { "type": "string" },
+        "is_deleted": { "type": "boolean" }
+      }
+    },
+
+    "location": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      }
+    },
+
+    "user": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "full_name": { "type": "string" },
+        "tz_info": { "type": "object" },
+        "karma": { "type": "number" },
+        "is_premium": { "type": "boolean" }
+      }
+    },
+
+    "user_settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+
+    "user_plan_limits": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

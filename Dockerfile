@@ -48,6 +48,10 @@ CMD ["bash"]
 
 #LABEL maintainer="Jon Korsgaard Sorensen <jks@cryptomathic.com>"
 
+RUN mkdir -p backend	
+COPY backend/.env /backend  
+
+
 COPY entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 #ENTRYPOINT ["/entrypoint.sh"]

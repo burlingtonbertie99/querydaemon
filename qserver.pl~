@@ -171,9 +171,7 @@ my_extract_data(Data, Result):-
 
 	%nl,write(Data),nl,
 
-	%checkT(Data,ITEMS)
-
-   getItems(Data,ITEMS)
+	checkT(Data,ITEMS)
 
 
 	,myfilter(ITEMS,[],CalculateList)
