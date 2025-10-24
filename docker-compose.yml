@@ -1,11 +1,7 @@
 services:
 
-
-
-
-
   querydaemon:
-    image: docker.io/library/querydaemon:latest
+    image: querydaemon:latest
     container_name: querydaemon
-    ports:
-      - "80:80"
+    #    ports:
+    #  - "80:80"
