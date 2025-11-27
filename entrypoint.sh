@@ -1,7 +1,6 @@
 #!/bin/bash
 
 
-
 echo "Script execution commencing!"
 
 #nohup swipl -g start_daemon -t halt querydemon.pl > /dev/null 2>&1 &
@@ -11,16 +10,11 @@ echo "Script execution commencing!"
 
 #echo ${{ secrets.secret1 }}
 
-
 #echo $${{ secrets.secret2 }}
 
 # Run the function for backend
 
-
-
-
 #swipl -g "pack_install(smtp,[interactive(false)])" -t halt 
-
 
 #swipl -g start_daemon -t halt querydemon.pl
 
@@ -30,12 +24,9 @@ swipl -g "pack_install(smtp,[interactive(false)])" -t halt
 
 echo "Starting Deamon!"
 
-
-swipl -g start_daemon -t halt -s querydaemon.pl
-
-
-
-
+#swipl -g start_daemon -t halt -s querydaemon.pl
+#
+swipl -g start_daemon -t halt -s querydaemold.pl
 
 
 

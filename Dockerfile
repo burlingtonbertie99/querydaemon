@@ -1,4 +1,4 @@
-FROM swipl
+FROM swipl:stable
 
 COPY querydaemon.pl /
 
