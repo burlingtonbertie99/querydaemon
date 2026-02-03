@@ -66,7 +66,7 @@ article_as_body(Input,Out):-
 
 mailtest(Input):-
 
-
+	getenv('GMAILSECRET1',GMAILSECRET),
   catch(
 
     smtp_send_mail('cal@cryptomathic.com',
@@ -82,7 +82,7 @@ mailtest(Input):-
                     smtp('smtp.gmail.com')
                     ,header(from('Christian Adler, <christianadler101@gmail.com>'))
                     ,from('christianadler101@gmail.com')
-                    ,auth('christianadler101'-'vcoqjmhlszhslkei')
+                    ,auth('christianadler101'-GMAILSECRET)
                     ,auth_method(login)
                     ,subject('Your automatically-generated article')
                     ,security(tls)
